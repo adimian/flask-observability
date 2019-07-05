@@ -52,11 +52,37 @@ class Observability:
         app.config.setdefault("INFLUXDB_PATH", "")
 
         app.before_request(self._before_request)
+        app.after_request(self._after_request)
 
         logger.debug("observability configured")
 
     def _before_request(self):
         g._request_start = perf_counter()
+
+    def _after_request(self, response):
+        fields = {}
+        tags = {
+            "view": request.environ["REQUEST_URI"],
+            "method": request.method,
+        }
+
+        if isinstance(response.status_code, int):
+            status_code = response.status_code
+        else:
+            status_code = response.status_code.value
+
+        tags["status_code"] = str(status_code)
+        fields["http_response_code"] = status_code
+
+        if 200 <= status_code < 300:
+            tags["result"] = "success"
+            fields["success"] = 1
+        else:
+            tags["result"] = "error"
+            fields["success"] = 0
+        metrics.observe_view(fields=fields, tags=tags)
+
+        return response
 
     def _client(self):
         client = influxdb.InfluxDBClient(
@@ -89,6 +115,8 @@ class Observability:
             if identity:
                 logger.debug("observability user: {}".format(identity))
                 return identity
+
+        return str(current_user)
 
     @property
     def testing(self):
@@ -141,32 +169,3 @@ class Observability:
                 )
             )
             self.client.write_points([message])
-
-
-def observe(name):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwds):
-            fields = {}
-            tags = {"view": name, "method": request.method}
-            try:
-                result = f(*args, **kwds)
-                tags["status_code"] = str(result.status_code)
-                tags["result"] = "success"
-                fields["http_response_code"] = result.status_code
-                fields["success"] = 1
-                metrics.observe_view(fields=fields, tags=tags)
-                return result
-            except Exception as exc:
-                fields["success"] = 0
-                tags["result"] = "failure"
-                code = getattr(exc, "code", None)
-                if code:
-                    tags["status_code"] = str(code)
-                    fields["http_response_code"] = code
-                metrics.observe_view(fields=fields, tags=tags)
-                raise
-
-        return wrapper
-
-    return decorator

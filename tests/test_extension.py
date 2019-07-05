@@ -2,7 +2,7 @@ import pytest
 from flask import Flask, request, abort, make_response
 from freezegun import freeze_time
 
-from flask_observability import Observability, metrics, observe
+from flask_observability import Observability, metrics
 
 
 @pytest.fixture
@@ -13,7 +13,6 @@ def app():
     obs.init_app(app)
 
     @app.route("/login", methods=["GET"])
-    @observe("login")
     def login():
         if request.form.get("username") == "bad":
             abort(403)
@@ -39,7 +38,7 @@ def test_metrics_spot_success(app):
         "time": "2012-08-26T00:00:00+00:00",
         "tags": {
             "host": "somehost",
-            "view": "login",
+            "view": "/login",
             "method": "GET",
             "result": "success",
             "status_code": "200",
