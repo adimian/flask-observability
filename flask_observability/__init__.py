@@ -115,6 +115,9 @@ class Observability:
         except ImportError:
             return
 
+        if current_user.is_anonymous:
+            return
+
         for attr in self.USUAL_NAME_ATTRS:
             identity = getattr(current_user, attr, None)
             if identity:
