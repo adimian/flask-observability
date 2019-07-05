@@ -47,3 +47,30 @@ for every call to a view, including logged-in user, status code and response tim
     1562347286181106944     1       1     guybrush.local 401                POST   0.008604614995419979  client_error 401                       /api/auth
     1562347286202841088     1       1     guybrush.local 401                POST   0.00504414492752403   client_error 401                       /api/auth
     1562347286252381184         1   1     guybrush.local 500                POST   0.030566500034183264  server_error 500                       /api/auth
+
+
+### Send metrics manually
+
+```python
+from flask import Flask
+from flask_observability import Observability, metrics
+
+app = Flask("demo")
+app.config['VERSION'] = "1.0.0"
+obs = Observability(app)
+
+with app.app_context():
+    metrics.send("heartbeat", alive=True, 
+                 tags={'version': app.config['VERSION']})
+
+```
+
+    $ influx -database demo
+    Connected to http://localhost:8086 version v1.7.7
+    InfluxDB shell version: v1.7.7
+    Using database demo
+    > select * from heartbeat
+    name: heartbeat
+    time                alive host           version
+    ----                ----- ----           -------
+    1562358967224788992 true  guybrush.local 1.0.0
