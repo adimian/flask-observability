@@ -171,19 +171,12 @@ class Observability:
 
         return message
 
-    def observe_view(self, fields, tags):
-        message = self.base_message(measurement="views")
-
-        fields["response_time"] = perf_counter() - g._request_start
-
-        message["fields"].update(fields)
-        message["tags"].update(tags)
-
+    def _dispatch(self, message):
         if self.testing:
             logger.debug(
                 "observability in testing mode, collecting message only"
             )
-            self.outgoing["views"].append(message)
+            self.outgoing[message["measurement"]].append(message)
         else:
             logger.debug(
                 "observability in live mode, sending {}".format(
@@ -194,3 +187,20 @@ class Observability:
                 self.client.write_points([message])
             except requests.exceptions.ConnectionError:
                 logger.exception("unable to connect influxdb server:")
+
+    def observe_view(self, fields, tags):
+        message = self.base_message(measurement="views")
+        fields["response_time"] = perf_counter() - g._request_start
+        message["fields"].update(fields)
+        message["tags"].update(tags)
+        self._dispatch(message=message)
+
+    def send(self, measurement, tags=None, **kwargs):
+        if not kwargs:
+            raise ValueError("you must provide at least one field to send")
+
+        message = self.base_message(measurement=measurement)
+        message["fields"].update(kwargs)
+        message["tags"].update(tags)
+
+        self._dispatch(message=message)

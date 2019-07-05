@@ -66,3 +66,14 @@ def test_metrics_spot_failure(app):
     assert observation["fields"]["4xx"] == 1
     assert observation["fields"]["error"] == 1
     assert observation["fields"]["http_response_code"] == 403
+
+
+@freeze_time("2012-08-26")
+def test_metrics_can_be_sent_manually(app):
+    metrics.send(
+        measurement="heartbeat", alive=True, tags={"trigger": "manual"}
+    )
+
+    observation = metrics.outgoing["heartbeat"][0]
+    assert observation["fields"]["alive"] is True
+    assert observation["tags"]["trigger"] == "manual"
