@@ -135,7 +135,10 @@ class Observability:
         except ImportError:
             return
 
-        if current_user.is_anonymous:
+        if not current_user:
+            return
+
+        if hasattr(current_user, "is_anonymous") and current_user.is_anonymous:
             return
 
         for attr in self.USUAL_NAME_ATTRS:
@@ -197,6 +200,8 @@ class Observability:
         self._dispatch(message=message)
 
     def send(self, measurement, tags=None, **kwargs):
+        if tags is None:
+            tags = {}
         if not kwargs:
             raise ValueError("you must provide at least one field to send")
 
