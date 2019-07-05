@@ -79,12 +79,26 @@ class Observability:
         tags["status_code"] = str(status_code)
         fields["http_response_code"] = status_code
 
-        if 200 <= status_code < 300:
-            tags["result"] = "success"
+        if 100 <= status_code < 200:
+            tags["result"] = "info"
+            fields["1xx"] = 1
             fields["success"] = 1
-        else:
-            tags["result"] = "error"
-            fields["success"] = 0
+        elif 200 <= status_code < 300:
+            tags["result"] = "success"
+            fields["2xx"] = 1
+            fields["success"] = 1
+        elif 300 <= status_code < 400:
+            tags["result"] = "redirect"
+            fields["3xx"] = 1
+            fields["success"] = 1
+        elif 400 <= status_code < 500:
+            tags["result"] = "client_error"
+            fields["4xx"] = 1
+            fields["error"] = 1
+        elif 500 <= status_code < 600:
+            tags["result"] = "server_error"
+            fields["5xx"] = 1
+            fields["error"] = 1
         metrics.observe_view(fields=fields, tags=tags)
 
         return response
