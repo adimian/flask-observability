@@ -3,10 +3,12 @@ import logging
 import socket
 from collections import defaultdict
 from functools import wraps
+from pprint import pformat
+from time import perf_counter
 
 import influxdb
 import pytz
-from flask import _request_ctx_stack, current_app
+from flask import _request_ctx_stack, current_app, request, g
 from werkzeug.local import LocalProxy
 
 logger = logging.getLogger(__name__)
@@ -38,7 +40,7 @@ class Observability:
         app.config.setdefault("INFLUXDB_PORT", "8086")
         app.config.setdefault("INFLUXDB_USER", "root")
         app.config.setdefault("INFLUXDB_PASSWORD", "root")
-        app.config.setdefault("INFLUXDB_DATABASE", None)
+        app.config.setdefault("INFLUXDB_DATABASE", app.import_name)
         app.config.setdefault("INFLUXDB_SSL", False)
         app.config.setdefault("INFLUXDB_VERIFY_SSL", False)
         app.config.setdefault("INFLUXDB_TIMEOUT", None)
@@ -49,8 +51,15 @@ class Observability:
         app.config.setdefault("INFLUXDB_POOL_SIZE", 10)
         app.config.setdefault("INFLUXDB_PATH", "")
 
+        app.before_request(self._before_request)
+
+        logger.debug("observability configured")
+
+    def _before_request(self):
+        g._request_start = perf_counter()
+
     def _client(self):
-        return influxdb.InfluxDBClient(
+        client = influxdb.InfluxDBClient(
             host=current_app.config["INFLUXDB_HOST"],
             port=current_app.config["INFLUXDB_PORT"],
             username=current_app.config["INFLUXDB_USER"],
@@ -66,6 +75,9 @@ class Observability:
             pool_size=current_app.config["INFLUXDB_POOL_SIZE"],
         )
 
+        logger.debug("influxdb client configured")
+        return client
+
     def request_user(self):
         try:
             from flask_login import current_user
@@ -75,6 +87,7 @@ class Observability:
         for attr in self.USUAL_NAME_ATTRS:
             identity = getattr(current_user, attr, None)
             if identity:
+                logger.debug("observability user: {}".format(identity))
                 return identity
 
     @property
@@ -108,36 +121,52 @@ class Observability:
 
         return message
 
-    def observe_view(self, view, fields, tags):
-        measurement = view.__name__
+    def observe_view(self, fields, tags):
+        message = self.base_message(measurement="views")
 
-        message = self.base_message(measurement=measurement)
+        fields["response_time"] = perf_counter() - g._request_start
+
         message["fields"].update(fields)
         message["tags"].update(tags)
 
         if self.testing:
-            self.outgoing[view.__name__].append(message)
+            logger.debug(
+                "observability in testing mode, collecting message only"
+            )
+            self.outgoing["views"].append(message)
         else:
+            logger.debug(
+                "observability in live mode, sending {}".format(
+                    pformat(message)
+                )
+            )
             self.client.write_points([message])
 
 
-def observe(f):
-    @wraps(f)
-    def wrapper(*args, **kwds):
-        fields = {}
-        tags = {}
-        try:
-            result = f(*args, **kwds)
-            fields["success"] = 1
-            tags["code"] = str(result.status_code)
-            metrics.observe_view(f, fields=fields, tags=tags)
-            return result
-        except Exception as exc:
-            fields["failure"] = 1
-            code = getattr(exc, "code", None)
-            if code:
-                tags["code"] = str(code)
-            metrics.observe_view(f, fields=fields, tags=tags)
-            raise
+def observe(name):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwds):
+            fields = {}
+            tags = {"view": name, "method": request.method}
+            try:
+                result = f(*args, **kwds)
+                tags["status_code"] = str(result.status_code)
+                tags["result"] = "success"
+                fields["http_response_code"] = result.status_code
+                fields["success"] = 1
+                metrics.observe_view(fields=fields, tags=tags)
+                return result
+            except Exception as exc:
+                fields["success"] = 0
+                tags["result"] = "failure"
+                code = getattr(exc, "code", None)
+                if code:
+                    tags["status_code"] = str(code)
+                    fields["http_response_code"] = code
+                metrics.observe_view(fields=fields, tags=tags)
+                raise
 
-    return wrapper
+        return wrapper
+
+    return decorator

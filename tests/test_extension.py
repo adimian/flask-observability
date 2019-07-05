@@ -13,7 +13,7 @@ def app():
     obs.init_app(app)
 
     @app.route("/login", methods=["GET"])
-    @observe
+    @observe("login")
     def login():
         if request.form.get("username") == "bad":
             abort(403)
@@ -30,13 +30,25 @@ def test_metrics_spot_success(app):
     res = client.get("/login", data={"username": "admin"})
     assert res.status_code == 200
 
-    assert len(metrics.outgoing["login"]) == 1
+    assert len(metrics.outgoing["views"]) == 1
 
-    assert metrics.outgoing["login"][0] == {
-        "measurement": "login",
-        "tags": {"host": "somehost", "code": "200"},
-        "fields": {"success": 1},
+    observation = metrics.outgoing["views"][0]
+
+    assert observation == {
+        "measurement": "views",
         "time": "2012-08-26T00:00:00+00:00",
+        "tags": {
+            "host": "somehost",
+            "view": "login",
+            "method": "GET",
+            "result": "success",
+            "status_code": "200",
+        },
+        "fields": {
+            "http_response_code": 200,
+            "success": 1,
+            "response_time": observation["fields"]["response_time"],
+        },
     }
 
 
@@ -47,11 +59,9 @@ def test_metrics_spot_failure(app):
     res = client.get("/login", data={"username": "bad"})
     assert res.status_code == 403
 
-    assert len(metrics.outgoing["login"]) == 1
+    assert len(metrics.outgoing["views"]) == 1
 
-    assert metrics.outgoing["login"][0] == {
-        "measurement": "login",
-        "tags": {"host": "somehost", "code": "403"},
-        "fields": {"failure": 1},
-        "time": "2012-08-26T00:00:00+00:00",
-    }
+    observation = metrics.outgoing["views"][0]
+
+    assert observation["fields"]["success"] == 0
+    assert observation["fields"]["http_response_code"] == 403

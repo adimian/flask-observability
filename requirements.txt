@@ -1,0 +1,3 @@
+Flask
+influxdb>=5.0.0
+pytz>=2019.1
