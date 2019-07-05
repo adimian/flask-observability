@@ -23,9 +23,10 @@ def _get_metrics():
 class Observability:
     USUAL_NAME_ATTRS = ("name", "username", "login", "uid", "id")
 
-    def __init__(self, app=None, hostname=None):
+    def __init__(self, app=None, hostname=None, ignored_routes=("static",)):
         self.hostname = hostname or socket.gethostname()
         self.app = app
+        self.ignored_routes = ignored_routes
 
         if app is not None:
             self.init_app(app)
@@ -61,10 +62,14 @@ class Observability:
 
     def _after_request(self, response):
         fields = {}
-        tags = {
-            "view": request.environ["REQUEST_URI"],
-            "method": request.method,
-        }
+
+        route = request.environ["REQUEST_URI"]
+
+        for ignored in self.ignored_routes:
+            if ignored in route:
+                return response
+
+        tags = {"view": route, "method": request.method}
 
         if isinstance(response.status_code, int):
             status_code = response.status_code
@@ -145,7 +150,7 @@ class Observability:
 
         identity = self.request_user()
         if identity:
-            message["user"] = identity
+            message["tags"]["user"] = identity
 
         return message
 
