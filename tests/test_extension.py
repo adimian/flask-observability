@@ -34,20 +34,21 @@ def test_metrics_spot_success(app):
     observation = metrics.outgoing["views"][0]
 
     assert observation == {
+        "fields": {
+            "2xx": 1,
+            "http_response_code": 200,
+            "response_time": observation["fields"]["response_time"],
+            "success": 1,
+        },
         "measurement": "views",
-        "time": "2012-08-26T00:00:00+00:00",
         "tags": {
             "host": "somehost",
-            "view": "/login",
             "method": "GET",
             "result": "success",
             "status_code": "200",
+            "view": "/login",
         },
-        "fields": {
-            "http_response_code": 200,
-            "success": 1,
-            "response_time": observation["fields"]["response_time"],
-        },
+        "time": "2012-08-26T00:00:00+00:00",
     }
 
 
@@ -62,5 +63,6 @@ def test_metrics_spot_failure(app):
 
     observation = metrics.outgoing["views"][0]
 
-    assert observation["fields"]["success"] == 0
+    assert observation["fields"]["4xx"] == 1
+    assert observation["fields"]["error"] == 1
     assert observation["fields"]["http_response_code"] == 403
