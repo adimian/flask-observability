@@ -52,8 +52,11 @@ class Observability:
         app.config.setdefault("INFLUXDB_POOL_SIZE", 10)
         app.config.setdefault("INFLUXDB_PATH", "")
 
-        app.before_request(self._before_request)
-        app.after_request(self._after_request)
+        app.config.setdefault("OBSERVE_AUTO_BIND_VIEWS", False)
+
+        if app.config["OBSERVE_AUTO_BIND_VIEWS"]:
+            app.before_request(self._before_request)
+            app.after_request(self._after_request)
 
         logger.debug("observability configured")
 

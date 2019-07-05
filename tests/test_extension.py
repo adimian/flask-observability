@@ -9,6 +9,7 @@ from flask_observability import Observability, metrics
 def app():
     app = Flask("demo")
     app.config["TESTING"] = True
+    app.config["OBSERVE_AUTO_BIND_VIEWS"] = True
     obs = Observability(hostname="somehost")
     obs.init_app(app)
 
