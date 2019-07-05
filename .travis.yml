@@ -1,0 +1,18 @@
+language: python
+python:
+- '3.6'
+cache: pip
+install:
+- pip install -r requirements-dev.txt
+- pip install -e .
+script:
+- pytest --cov=flask_observability --cov-report term-missing
+after_success:
+- coveralls
+deploy:
+  user: adimian
+  provider: pypi
+  on:
+    branch: master
+  password:
+    secure: Nax0x+IrAC8f+cbo74Fl9uJ1aFnL4Wn3EPmNkDsxHhqffCgZQtRC9lvAoXKSduWAuPu+XYvwHhtL/QGuuHIPfF69BLxmvsNHPNXJps9Vw3u4F4ToPpd68oequvPD1QddFF2gM8f9wfQwrX70YDvb2AQEL7y8Mzr1DM6obwSEfW4iIN6jw8+DUuICQbgnbCNf7Rpo+zjpHSOZZlR1gvRfW9JI58091L0/IZtr6EglrlgC9ZQAJuR6Vf0FYDI40+yOJI35Ux3YRp88BtuVNPMx4gqupZNbvaYRn8HUbD4+QVqs842dPmrIuZ07z2aDygutg7SzD479d6znKmIYhAKMBbpdIrwC///cUVjbsvHTCG+f0TZ7MaTwpaVHZNILgmhVU1jNFLQ+w0NOPPlcUnH4TlOl4G7JObA5F6xEvp+QERZXh3X7aWhsj9reOcMvj5psQF/Y/nM7JmdeCQhqCaJgZzpECz6ChJ2KX/YTsY4IXj/XYkkjvH8onrKMmbs2n6J0hfeqmtlB+nNhCpNJTW6AxMvpwKyVA1msb0PYq7dGiR2FU7DD2wMToPZWStfIu+QEE0VbpiuB7us0GVhu1B7ZXq40xb8faaKDk4PU6p1XZTIUka1AZde5W7+kQympnPoNngfRFSvmkSo/jrvLxvPYrT1nlJEgWjyF+EsOEwF8F6U=
