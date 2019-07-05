@@ -2,12 +2,12 @@ import datetime
 import logging
 import socket
 from collections import defaultdict
-from functools import wraps
 from pprint import pformat
 from time import perf_counter
 
 import influxdb
 import pytz
+import requests
 from flask import _request_ctx_stack, current_app, request, g
 from werkzeug.local import LocalProxy
 
@@ -190,4 +190,7 @@ class Observability:
                     pformat(message)
                 )
             )
-            self.client.write_points([message])
+            try:
+                self.client.write_points([message])
+            except requests.exceptions.ConnectionError:
+                logger.exception("unable to connect influxdb server:")
