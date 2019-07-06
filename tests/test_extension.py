@@ -15,7 +15,7 @@ def app():
     obs.init_app(app)
 
     @app.route("/login", methods=["GET"])
-    def loginHandler():
+    def login_handler():
         if request.form.get("username") == "bad":
             abort(403)
         return make_response("", 200)
@@ -42,7 +42,7 @@ def app_with_login_manager():
     login_manager.init_app(app)
 
     @app.route("/login", methods=["GET"])
-    def loginHandler():
+    def login_handler():
         if request.form.get("username") == "bad":
             abort(403)
         return make_response("", 200)
