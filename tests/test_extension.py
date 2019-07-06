@@ -19,6 +19,13 @@ def app():
             abort(403)
         return make_response("", 200)
 
+    @app.route("/error", methods=["GET"])
+    def error():
+        errorcode = request.form.get("errorcode")
+        if errorcode is not None:
+            abort(int(errorcode))
+        return make_response("", 200)
+
     with app.app_context():
         yield app
 
@@ -68,12 +75,30 @@ def test_metrics_spot_failure(app):
     assert observation["fields"]["error"] == 1
     assert observation["fields"]["http_response_code"] == 403
 
+
 @freeze_time("2012-08-26")
 def test_ignored_routes(app):
     client = app.test_client()
     res = client.get("/static")
     assert res.status_code == 404
     assert len(metrics.outgoing["views"]) == 0
+
+
+@freeze_time("2012-08-26")
+def test_metrics_errors(app):
+    client = app.test_client()
+    errorcode, errorfamily = (501, "5xx")
+    res = client.get("/error", data={"errorcode": str(errorcode)})
+    assert res.status_code == errorcode
+
+    assert len(metrics.outgoing["views"]) > 0
+
+    observation = metrics.outgoing["views"][0]
+
+    assert observation["fields"][errorfamily] == 1
+    assert observation["fields"]["error"] == 1
+    assert observation["fields"]["http_response_code"] == errorcode
+
 
 @freeze_time("2012-08-26")
 def test_metrics_can_be_sent_manually(app):
