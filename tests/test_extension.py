@@ -68,6 +68,12 @@ def test_metrics_spot_failure(app):
     assert observation["fields"]["error"] == 1
     assert observation["fields"]["http_response_code"] == 403
 
+@freeze_time("2012-08-26")
+def test_ignored_routes(app):
+    client = app.test_client()
+    res = client.get("/static")
+    assert res.status_code == 404
+    assert len(metrics.outgoing["views"]) == 0
 
 @freeze_time("2012-08-26")
 def test_metrics_can_be_sent_manually(app):
