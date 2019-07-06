@@ -120,3 +120,12 @@ def test_metrics_called_without_arguments_raises_exception(app):
 @freeze_time("2012-08-26")
 def test_default_client(app):
     assert metrics.client is not None
+
+
+@freeze_time("2012-08-26")
+def test_dispatching(app):
+    # run the non-testing branch
+    app.config["TESTING"] = False
+    metrics.send(
+        measurement="heartbeat", alive=True, tags={"trigger": "manual"}
+    )
