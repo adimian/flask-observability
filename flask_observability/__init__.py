@@ -135,6 +135,9 @@ class Observability:
         except ImportError:
             return
 
+        if not hasattr(self.app, "login_manager"):
+            return
+
         if not current_user:
             return
 
