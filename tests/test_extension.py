@@ -115,3 +115,8 @@ def test_metrics_can_be_sent_manually(app):
 def test_metrics_called_without_arguments_raises_exception(app):
     with pytest.raises(ValueError):
         metrics.send(measurement="heartbeat")
+
+
+@freeze_time("2012-08-26")
+def test_default_client(app):
+    assert metrics.client is not None
