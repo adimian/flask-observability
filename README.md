@@ -75,3 +75,26 @@ with app.app_context():
     time                alive host           version
     ----                ----- ----           -------
     1562358967224788992 true  guybrush.local 1.0.0
+
+## Configuration
+
+This extension uses the influxdb module under the hood, and most settings are passed directly to it:
+
+
+| Configuration  | Default Value |
+| -------------- | ------------- |   
+| OBSERVE_AUTO_BIND_VIEWS   | False | 
+| INFLUXDB_HOST             | "localhost" | 
+| INFLUXDB_PORT             | "8086" | 
+| INFLUXDB_USER             | "root" | 
+| INFLUXDB_PASSWORD         | "root" | 
+| INFLUXDB_DATABASE         | app.import_name | 
+| INFLUXDB_SSL              | False | 
+| INFLUXDB_VERIFY_SSL       | False | 
+| INFLUXDB_TIMEOUT          | None | 
+| INFLUXDB_RETRIES          | 3 | 
+| INFLUXDB_USE_UDP          | False | 
+| INFLUXDB_UDP_PORT         | 4444 | 
+| INFLUXDB_PROXIES          | None | 
+| INFLUXDB_POOL_SIZE        | 10 | 
+| INFLUXDB_PATH             | "" | 

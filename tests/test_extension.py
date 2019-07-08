@@ -1,6 +1,6 @@
 import pytest
 from flask import Flask, request, abort, make_response
-from flask_login import LoginManager
+from flask_login import LoginManager, UserMixin
 from freezegun import freeze_time
 
 from flask_observability import Observability, metrics
@@ -35,17 +35,31 @@ def app():
 def app_with_login_manager():
     app = Flask("demo")
     app.config["TESTING"] = True
+    app.config["SECRET_KEY"] = "thisisverysecret"
     app.config["OBSERVE_AUTO_BIND_VIEWS"] = True
-    obs = Observability(hostname="somehost")
-    obs.init_app(app)
+    Observability(app, hostname="somehost")
     login_manager = LoginManager(app)
     login_manager.init_app(app)
+
+    class User(UserMixin):
+        username = "alice"
+
+        def get_id(self):
+            return 1
 
     @app.route("/login", methods=["GET"])
     def login_handler():
         if request.form.get("username") == "bad":
             abort(403)
         return make_response("", 200)
+
+    @app.route("/hello", methods=["GET"])
+    def hello():
+        from flask_login import current_user, login_user
+
+        login_user(User())
+
+        return make_response("hello, {}".format(current_user.username), 200)
 
     @app.route("/error", methods=["GET"])
     def error():
@@ -187,3 +201,17 @@ def test_with_login_manager(app_with_login_manager):
         },
         "time": "2012-08-26T00:00:00+00:00",
     }
+
+
+@freeze_time("2012-08-26")
+def test_with_login_manager_and_user_logged_in(app_with_login_manager):
+    client = app_with_login_manager.test_client()
+
+    res = client.get("/hello")
+    assert res.status_code == 200
+
+    assert len(metrics.outgoing["views"]) == 1
+
+    observation = metrics.outgoing["views"][0]
+
+    assert observation["tags"]["user"] == "alice"

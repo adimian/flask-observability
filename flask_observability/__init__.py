@@ -77,13 +77,13 @@ class Observability:
 
         if isinstance(response.status_code, int):
             status_code = response.status_code
-        else:
+        else:  # pragma: nocover
             status_code = response.status_code.value
 
         tags["status_code"] = str(status_code)
         fields["http_response_code"] = status_code
 
-        if 100 <= status_code < 200:
+        if 100 <= status_code < 200:  # pragma: nocover
             tags["result"] = "info"
             fields["1xx"] = 1
             fields["success"] = 1
@@ -91,7 +91,7 @@ class Observability:
             tags["result"] = "success"
             fields["2xx"] = 1
             fields["success"] = 1
-        elif 300 <= status_code < 400:
+        elif 300 <= status_code < 400:  # pragma: nocover
             tags["result"] = "redirect"
             fields["3xx"] = 1
             fields["success"] = 1
@@ -132,25 +132,32 @@ class Observability:
     def request_user(self):
         try:
             from flask_login import current_user
-        except ImportError:
+        except ImportError:  # pragma: nocover
             return
 
         if not hasattr(self.app, "login_manager"):
+            # this means the login manager hasn't been configured in the
+            # application, despite flask_login being installed
             return
 
         if not current_user:
-            return
+            # can happen if flask login isn't properly configured
+            return  # pragma: nocover
 
         if hasattr(current_user, "is_anonymous") and current_user.is_anonymous:
+            # if the user is anonymous, let's not clutter the logs with
+            # "anonymous", it is as good as no information
             return
 
         for attr in self.USUAL_NAME_ATTRS:
             identity = getattr(current_user, attr, None)
             if identity:
-                logger.debug("observability user: {}".format(identity))
                 return identity
 
-        return str(current_user)
+        # last resort, we have a logged-in user, but the attribute used
+        # to display their name is not in the "usual" list, so let's just
+        # return the string of the whole object
+        return str(current_user)  # pragma: nocover
 
     @property
     def testing(self):
@@ -180,7 +187,7 @@ class Observability:
                 "observability in testing mode, collecting message only"
             )
             self.outgoing[message["measurement"]].append(message)
-        else:
+        else:  # pragma: nocover
             if not self.client:
                 logger.error("no influxdb client available to send metrics")
                 return
