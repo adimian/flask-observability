@@ -17,7 +17,7 @@ metrics = LocalProxy(lambda: _get_metrics())
 
 
 def _get_metrics():
-    return current_app.observability
+    return current_app.extensions["observability"]
 
 
 class Observability:
@@ -36,7 +36,7 @@ class Observability:
 
     def init_app(self, app):
         self.app = app
-        app.observability = self
+        app.extensions["observability"] = self
 
         app.config.setdefault("INFLUXDB_HOST", "localhost")
         app.config.setdefault("INFLUXDB_PORT", "8086")
