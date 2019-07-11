@@ -3,7 +3,7 @@ Add observability for your Flask app through InfluxDB
 
 [![Build Status](https://travis-ci.org/adimian/flask-observability.svg?branch=master)](https://travis-ci.org/adimian/flask-observability)
 [![Coverage Status](https://coveralls.io/repos/github/adimian/flask-observability/badge.svg?branch=master&cache=no)](https://coveralls.io/github/adimian/flask-observability?branch=master)
-
+[![PyPI version](https://badge.fury.io/py/flask-observability.svg)](https://badge.fury.io/py/flask-observability)
 ## Install
 
     $ pip install flask-observability
