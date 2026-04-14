@@ -1,7 +1,7 @@
 black==26.3.1
 coveralls
 freezegun==0.3.12
-pytest==4.4.1
+pytest==9.0.3
 pytest-cov==2.7.1
 flask_login
 
